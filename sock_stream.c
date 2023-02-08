@@ -13,6 +13,25 @@ static void print_usage(const char *progname)
 	printf("%s (server|client)\n", progname);
 }
 
+int stream_recv(int sock, void *buf, size_t buflen, int flag)
+{
+	int written = 0;
+	int ret;
+
+	while(written < buflen) {
+	 	ret = recv(sock, (char *)buf + written, buflen - written, flag);
+		if(ret == -1) {
+			return ret;
+		}
+		written += ret;
+	}
+	return 0;
+
+	/* if success, return 0
+	   if fail, return -1 */
+}
+
+
 static int do_server(void)
 {
 	/*
@@ -26,7 +45,7 @@ static int do_server(void)
 	int sock;
 	struct sockaddr_un addr;
 	int peer;
-	char buf[1024];
+	char buf[128];
 	int ret;
 
 	sock = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -55,7 +74,11 @@ static int do_server(void)
 	}
 
 	memset(buf, 0, sizeof(buf));
+#if 0
 	ret = recv(peer, buf, sizeof(buf), 0);
+#else
+	ret = stream_recv(peer, buf, sizeof(buf), 0);
+#endif
 	if(ret == -1) {
 		perror("recv()");
 		close(sock);
@@ -67,6 +90,24 @@ static int do_server(void)
 	close(sock);
 
 	return 0;
+}
+
+int stream_send(int sock, void *buf, size_t buflen, int flag)
+{
+	int written = 0;
+	int ret;
+
+	while(written < buflen) {
+	 	ret = send(sock, (char *)buf + written, buflen - written, flag);
+		if(ret == -1) {
+			return ret;
+		}
+		written += ret;
+	}
+	return 0;
+
+	/* if success, return 0
+	   if fail, return -1 */
 }
 
 static int do_client(void)
@@ -98,7 +139,12 @@ static int do_client(void)
 
 	memset(buf, 0, sizeof(buf));
 	snprintf(buf, sizeof(buf), "this is msg from sock_stream");
+
+#if 0
 	ret = send(sock, buf, sizeof(buf), 0);
+#else
+	ret = stream_send(sock, buf, sizeof(buf), 0);
+#endif
     if(ret < 0) {
 		perror("send()");
 		close(sock);
